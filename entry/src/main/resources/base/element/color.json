@@ -1,0 +1,104 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "game_background",
+      "value": "#FAF8EF"
+    },
+    {
+      "name": "grid_background",
+      "value": "#BBADA0"
+    },
+    {
+      "name": "tile_background_2",
+      "value": "#EEE4DA"
+    },
+    {
+      "name": "tile_background_4",
+      "value": "#EDE0C8"
+    },
+    {
+      "name": "tile_background_8",
+      "value": "#F2B179"
+    },
+    {
+      "name": "tile_background_16",
+      "value": "#F59563"
+    },
+    {
+      "name": "tile_background_32",
+      "value": "#F67C5F"
+    },
+    {
+      "name": "tile_background_64",
+      "value": "#F65E3B"
+    },
+    {
+      "name": "tile_background_128",
+      "value": "#EDCF72"
+    },
+    {
+      "name": "tile_background_256",
+      "value": "#EDCC61"
+    },
+    {
+      "name": "tile_background_512",
+      "value": "#EDC850"
+    },
+    {
+      "name": "tile_background_1024",
+      "value": "#EDC53F"
+    },
+    {
+      "name": "tile_background_2048",
+      "value": "#EDC22E"
+    },
+    {
+      "name": "tile_background_4096",
+      "value": "#E0B91D"
+    },
+    {
+      "name": "tile_background_8192",
+      "value": "#D4A60C"
+    },
+    {
+      "name": "tile_background_16384",
+      "value": "#B71C1C"
+    },
+    {
+      "name": "tile_text_dark",
+      "value": "#776E65"
+    },
+    {
+      "name": "tile_text_light",
+      "value": "#F9F6F2"
+    },
+    {
+      "name": "button_background",
+      "value": "#8F7A66"
+    },
+    {
+      "name": "button_text",
+      "value": "#F9F6F2"
+    },
+    {
+      "name": "score_background",
+      "value": "#BBADA0"
+    },
+    {
+      "name": "score_text",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "game_over_background",
+      "value": "#00000080"
+    },
+    {
+      "name": "continue_button_background",
+      "value": "#4CAF50"
+    }
+  ]
+}

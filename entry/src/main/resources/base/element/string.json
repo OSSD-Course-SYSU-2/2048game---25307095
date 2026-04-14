@@ -1,0 +1,116 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "game_title",
+      "value": "2048"
+    },
+    {
+      "name": "score_label",
+      "value": "分数"
+    },
+    {
+      "name": "best_score_label",
+      "value": "最高分"
+    },
+    {
+      "name": "new_game_button",
+      "value": "新游戏"
+    },
+    {
+      "name": "restart_button",
+      "value": "重新开始"
+    },
+    {
+      "name": "game_over_title",
+      "value": "游戏结束!"
+    },
+    {
+      "name": "game_over_message",
+      "value": "无法继续移动"
+    },
+    {
+      "name": "game_won_title",
+      "value": "恭喜!"
+    },
+    {
+      "name": "game_won_message",
+      "value": "你达到了16384!"
+    },
+    {
+      "name": "continue_button",
+      "value": "继续"
+    },
+    {
+      "name": "continue_game_button",
+      "value": "继续游戏"
+    },
+    {
+      "name": "try_again_button",
+      "value": "再试一次"
+    },
+    {
+      "name": "instructions_title",
+      "value": "游戏说明"
+    },
+    {
+      "name": "instructions_text",
+      "value": "滑动屏幕移动方块，相同数字的方块会合并。目标是获得16384!"
+    },
+    {
+      "name": "swipe_to_move",
+      "value": "滑动屏幕移动方块"
+    },
+    {
+      "name": "join_numbers",
+      "value": "相同数字合并"
+    },
+    {
+      "name": "goal_is_16384",
+      "value": "目标：16384"
+    },
+    {
+      "name": "touch_to_start",
+      "value": "触摸开始游戏"
+    },
+    {
+      "name": "undo_button",
+      "value": "撤销"
+    },
+    {
+      "name": "hint_button",
+      "value": "提示"
+    },
+    {
+      "name": "settings_button",
+      "value": "设置"
+    },
+    {
+      "name": "sound_on",
+      "value": "音效: 开"
+    },
+    {
+      "name": "sound_off",
+      "value": "音效: 关"
+    },
+    {
+      "name": "vibration_on",
+      "value": "震动: 开"
+    },
+    {
+      "name": "vibration_off",
+      "value": "震动: 关"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "float": [
+    {
+      "name": "page_text_font_size",
+      "value": "50fp"
+    },
+    {
+      "name": "grid_size",
+      "value": "300vp"
+    },
+    {
+      "name": "tile_size",
+      "value": "65vp"
+    },
+    {
+      "name": "tile_margin",
+      "value": "5vp"
+    },
+    {
+      "name": "tile_font_size_small",
+      "value": "24fp"
+    },
+    {
+      "name": "tile_font_size_medium",
+      "value": "32fp"
+    },
+    {
+      "name": "tile_font_size_large",
+      "value": "40fp"
+    },
+    {
+      "name": "tile_font_size_xlarge",
+      "value": "48fp"
+    },
+    {
+      "name": "tile_border_radius",
+      "value": "6vp"
+    },
+    {
+      "name": "score_card_width",
+      "value": "80vp"
+    },
+    {
+      "name": "score_card_height",
+      "value": "60vp"
+    },
+    {
+      "name": "score_font_size",
+      "value": "16fp"
+    },
+    {
+      "name": "score_label_font_size",
+      "value": "12fp"
+    },
+    {
+      "name": "button_height",
+      "value": "48vp"
+    },
+    {
+      "name": "button_font_size",
+      "value": "16fp"
+    },
+    {
+      "name": "button_border_radius",
+      "value": "8vp"
+    },
+    {
+      "name": "game_title_font_size",
+      "value": "48fp"
+    },
+    {
+      "name": "game_over_font_size",
+      "value": "36fp"
+    },
+    {
+      "name": "game_over_message_font_size",
+      "value": "20fp"
+    },
+    {
+      "name": "instructions_font_size",
+      "value": "14fp"
+    },
+    {
+      "name": "grid_padding",
+      "value": "10vp"
+    },
+    {
+      "name": "content_padding",
+      "value": "16vp"
+    },
+    {
+      "name": "spacing_small",
+      "value": "8vp"
+    },
+    {
+      "name": "spacing_medium",
+      "value": "16vp"
+    },
+    {
+      "name": "spacing_large",
+      "value": "24vp"
+    },
+    {
+      "name": "spacing_xlarge",
+      "value": "32vp"
+    },
+    {
+      "name": "watch_tile_size",
+      "value": "40vp"
+    },
+    {
+      "name": "watch_tile_font_size",
+      "value": "16fp"
+    },
+    {
+      "name": "tablet_tile_size",
+      "value": "80vp"
+    },
+    {
+      "name": "tablet_tile_font_size",
+      "value": "36fp"
+    },
+    {
+      "name": "desktop_tile_size",
+      "value": "90vp"
+    },
+    {
+      "name": "desktop_tile_font_size",
+      "value": "40fp"
+    }
+  ]
+}
