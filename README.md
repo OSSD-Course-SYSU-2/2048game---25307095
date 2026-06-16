@@ -17,6 +17,7 @@
 - [数据持久化](#数据持久化)
 - [构建与部署](#构建与部署)
 - [许可协议](#许可协议)
+- [贡献指南](#贡献指南)
 
 ---
 
@@ -24,7 +25,7 @@
 
 **Game2048Plus** 是经典 2048 数字益智游戏的鸿蒙原生实现。项目采用 **ArkTS** 语言和 **ArkUI** 框架，遵循 **Stage 模型** 开发，充分利用鸿蒙系统的多设备协同能力，在一套代码基础上自适应手机、平板、折叠屏、PC、手表等不同形态设备。
 
-游戏不仅保留了原版 2048 的核心玩法，还内置了**交互式教学模式**，帮助新玩家快速上手。最高分持久化存储，确保游戏进度不丢失。
+游戏不仅保留了原版 2048 的核心玩法，还内置了**交互式教学模式**，帮助新玩家快速上手。最高合成数字持久化存储，确保游戏进度不丢失。
 
 ### 基本信息
 
@@ -45,11 +46,12 @@
 - **触控滑动**：支持手指滑动手势操作（PanGesture）
 - **键盘支持**：方向键 / WASD 操作（PC 设备）
 - **实时计分**：每次合并获得对应分值，步数统计
+- **最高合成追踪**：记录玩家曾合成过的最大数字方块
 - **胜利/结束弹窗**：达成 2048 或无路可走时触发提示
 
 ### 🎨 双模式选择
 - **🎮 普通模式**：直接开始游戏
-- **📖 教学模式**：7 页交互式教程覆盖层，涵盖规则、操作、策略等
+- **📖 教学模式**：单页滚动教程覆盖层，涵盖规则、操作、策略等全套内容，上下滑动即可浏览
 
 ### 📱 多设备自适应
 - **5 档断点响应**：XS / SM / MD / LG / XL
@@ -58,7 +60,7 @@
 - **自适应 UI**：棋盘大小、方块尺寸、字体大小均随断点动态调整
 
 ### 💾 数据持久化
-- 最高分通过 `@kit.ArkData` (preferences) 本地持久化存储
+- 最高合成数字通过 `@kit.ArkData` (preferences) 本地持久化存储
 - 备份恢复能力已配置（backup extension）
 
 ### 🌓 深色模式支持
@@ -211,9 +213,9 @@ game2048plus/
 
 ### 教学模式
 
-内置 7 页交互式教程，涵盖：
+所有内容在单页中垂直排列，上下滑动即可浏览全部 7 个小节：
 
-| 页码 | 主题 | 内容 |
+| 节 | 主题 | 内容 |
 |------|------|------|
 | 1 | 🎮 欢迎 | 游戏简介与目标 |
 | 2 | 🖱️ 基本操作 | 滑动、合并、键盘操作 |
@@ -222,6 +224,8 @@ game2048plus/
 | 5 | 🔗 进阶技巧 | 链式构建与布局 |
 | 6 | 🚫 常见错误 | 新手最容易犯的 4 个错误 |
 | 7 | 🎯 高手心法 | 成为达人的秘诀 |
+
+点击半透明背景区域或「✕ 关闭」按钮即可退出教程。
 
 ---
 
@@ -233,10 +237,11 @@ game2048plus/
 ┌──────────────────────────────────────────────────┐
 │                  Index (主页面)                     │
 │  @State flatBoard: number[]   ← 扁平化UI数据源     │
-│  @State score / bestScore / moveCount             │
+│  @State score / maxTileValue / moveCount          │
 │  @State showModeSelect / showTeaching             │
 │  @State showWinDialog / showGameOverDialog        │
 │  @State currentBreakpoint / deviceCategory        │
+│  @State cachedTileSize / cachedGap / … (缓存尺寸) │
 └──────────────┬───────────────────────────────────┘
                │ 监听状态变化 (addListener)
                ▼
@@ -264,6 +269,9 @@ private syncFromGameState(state: GameState): void {
     }
   }
   this.flatBoard = newBoard;  // 触发 UI 刷新
+  this.score = state.score;
+  this.maxTileValue = state.maxTileValue;
+  this.moveCount = state.moveCount;
 }
 ```
 
@@ -286,10 +294,12 @@ Index (页面入口)
 ├── WinOverlay (胜利弹窗)
 ├── GameOverOverlay (游戏结束弹窗)
 └── TeachingOverlay (教学模式覆盖层)
-    ├── 进度条
-    ├── 标题/副标题/内容
-    ├── 提示框
-    └── 导航按钮 (关闭/上一页/下一页)
+    ├── 固定标题栏 + 关闭按钮
+    ├── Scroll 滚动区域 (全部 7 小节垂直排列)
+    │   ├── 序号标题 + 副标题
+    │   ├── 分隔线 + 要点列表
+    │   └── 金色提示框
+    └── 底部结语
 ```
 
 ---
@@ -316,32 +326,40 @@ Index (页面入口)
 
 ### 响应式 UI 调整
 
-- **棋盘尺寸**：从 XS (160vp) 到 XL (560vp) 自适应
+- **棋盘尺寸**：从 XS (120vp，适配圆形手表) 到 XL (560vp) 自适应
 - **方块大小**：根据棋盘尺寸和间距动态计算
-- **字体大小**：根据方块尺寸和设备断点动态缩放
-- **间距**：XS (6vp) / SM (8vp) / 其他 (10vp)
-- **显隐控制**：XS 断点隐藏操作提示文字
+- **字体大小**：根据设备断点动态缩放
+- **间距**：XS (4vp) / SM (8vp) / 其他 (10vp)
+- **显隐控制**：XS 断点隐藏操作提示文字；所有尺寸值缓存为 `@State`，仅在断点切换时重新计算
 
 ---
 
 ## 数据持久化
 
-### 最高分存储
+### 最高合成数字存储
 
 使用 `@kit.ArkData` 的 `preferences` API 实现：
 
 ```typescript
 const PREFERENCE_NAME = 'game2048_storage';
-const BEST_SCORE_KEY = 'best_score';
+const MAX_TILE_KEY = 'max_tile';
 
 // 加载
 const dataPreferences = await preferences.getPreferences(getContext(), PREFERENCE_NAME);
-const best = await dataPreferences.get(BEST_SCORE_KEY, 0);
+const saved = await dataPreferences.get(MAX_TILE_KEY, 0);
+this.gameModel.setMaxTileValue(saved);
 
-// 保存
-await dataPreferences.put(BEST_SCORE_KEY, this.bestScore);
+// 保存（每次新游戏 / 应用退出时）
+await dataPreferences.put(MAX_TILE_KEY, this.maxTileValue);
 await dataPreferences.flush();
 ```
+
+### 追踪机制
+
+最高合成数字在以下三个时刻更新：
+1. **随机生成方块时** — 新方块的数值若高于当前记录则更新
+2. **方块合并时** — 合并结果若高于当前记录则更新
+3. **构建游戏状态时** — 直接扫描棋盘 16 个格子取最大值，作为兜底保障
 
 ### 备份恢复
 

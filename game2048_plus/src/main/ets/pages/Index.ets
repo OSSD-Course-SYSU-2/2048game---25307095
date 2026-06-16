@@ -11,10 +11,10 @@ import { BreakPointSystem, DeviceBreakpoint, DeviceCategory } from '../utils/Bre
 import { preferences } from '@kit.ArkData';
 import { TileCellComponent } from '../components/TileCellComponent';
 import { TeachingOverlay } from '../components/TeachingOverlay';
-import { BOARD_SIZE, SWIPE_THRESHOLD, TILE_COLORS, TILE_TEXT_COLORS } from '../constants/GameConstants';
+import { BOARD_SIZE, SWIPE_THRESHOLD } from '../constants/GameConstants';
 
 const PREFERENCE_NAME: string = 'game2048_storage';
-const BEST_SCORE_KEY: string = 'best_score';
+const MAX_TILE_KEY: string = 'max_tile';
 
 @Entry
 @Component
@@ -22,7 +22,7 @@ struct Index {
   // === 核心：扁平化棋盘数值数组，ArkTS 能可靠追踪 ===
   @State flatBoard: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   @State score: number = 0;
-  @State bestScore: number = 0;
+  @State maxTileValue: number = 0;
   @State moveCount: number = 0;
   
   @State currentBreakpoint: DeviceBreakpoint = DeviceBreakpoint.SM;
@@ -34,13 +34,29 @@ struct Index {
   // 教学模式：进入教程覆盖层
   @State showTeaching: boolean = false;
 
+  // === 缓存的布局尺寸，仅在断点变化时重新计算 ===
+  @State cachedTileSize: number = 60;
+  @State cachedGap: number = 8;
+  @State cachedContainerSize: number = 300;
+  @State cachedBorderRadius: number = 6;
+  @State isXs: boolean = false;
+
   private gameModel: Game2048Model = new Game2048Model(BOARD_SIZE);
   private breakPointSystem: BreakPointSystem = BreakPointSystem.getInstance();
+
+  /** 根据当前断点更新所有缓存的布局尺寸，避免渲染时重复计算 */
+  private updateCachedSizes(): void {
+    this.isXs = this.currentBreakpoint === DeviceBreakpoint.XS;
+    this.cachedGap = this.getGap();
+    this.cachedContainerSize = this.getBoardContainerSize();
+    this.cachedTileSize = (this.cachedContainerSize - this.cachedGap * (BOARD_SIZE + 1)) / BOARD_SIZE;
+    this.cachedBorderRadius = this.isXs ? 3 : 6;
+  }
 
   private getBoardContainerSize(): number {
     switch (this.currentBreakpoint) {
       case DeviceBreakpoint.XS:
-        return 160;
+        return 120;  // 圆形手表安全方形区域
       case DeviceBreakpoint.SM:
         return 300;
       case DeviceBreakpoint.MD:
@@ -54,16 +70,10 @@ struct Index {
     }
   }
 
-  private getTileSize(): number {
-    const containerSize = this.getBoardContainerSize();
-    const gap = this.getGap();
-    return (containerSize - gap * (BOARD_SIZE + 1)) / BOARD_SIZE;
-  }
-
   private getGap(): number {
     switch (this.currentBreakpoint) {
       case DeviceBreakpoint.XS:
-        return 6;
+        return 4;
       case DeviceBreakpoint.SM:
         return 8;
       default:
@@ -71,21 +81,10 @@ struct Index {
     }
   }
 
-  private getTileFontSize(value: number): number {
-    const tileSize = this.getTileSize();
-    if (value < 100) {
-      return tileSize * 0.4;
-    } else if (value < 1000) {
-      return tileSize * 0.35;
-    } else {
-      return tileSize * 0.25;
-    }
-  }
-
   private getScoreTitleFontSize(): number {
     switch (this.currentBreakpoint) {
       case DeviceBreakpoint.XS:
-        return 10;
+        return 8;
       case DeviceBreakpoint.SM:
         return 13;
       default:
@@ -96,7 +95,7 @@ struct Index {
   private getScoreValueFontSize(): number {
     switch (this.currentBreakpoint) {
       case DeviceBreakpoint.XS:
-        return 16;
+        return 13;
       case DeviceBreakpoint.SM:
         return 22;
       default:
@@ -112,7 +111,10 @@ struct Index {
     this.breakPointSystem.addListener((bp: DeviceBreakpoint, category: DeviceCategory) => {
       this.currentBreakpoint = bp;
       this.deviceCategory = category;
+      this.updateCachedSizes();
     });
+
+    this.updateCachedSizes();
 
     // 监听游戏状态变化，同步到扁平化数组
     this.gameModel.addListener((state: GameState) => {
@@ -125,13 +127,13 @@ struct Index {
       }
     });
 
-    this.loadBestScore();
+    this.loadMaxTile();
     // 先不初始化棋盘，等用户选择模式后再初始化
   }
 
   aboutToDisappear(): void {
     this.breakPointSystem.unregister();
-    this.saveBestScore();
+    this.saveMaxTile();
   }
 
   /** 开始普通模式 */
@@ -147,11 +149,6 @@ struct Index {
     this.showTeaching = true;
   }
 
-  /** 关闭教学 */
-  private closeTeaching(): void {
-    this.showTeaching = false;
-  }
-
   /** 从 GameState 同步数据到扁平化数组 */
   private syncFromGameState(state: GameState): void {
     const newBoard: number[] = [];
@@ -163,39 +160,28 @@ struct Index {
     }
     this.flatBoard = newBoard;
     this.score = state.score;
-    this.bestScore = state.bestScore;
+    this.maxTileValue = state.maxTileValue;
     this.moveCount = state.moveCount;
   }
 
-  private async loadBestScore(): Promise<void> {
+  private async loadMaxTile(): Promise<void> {
     try {
       const dataPreferences = await preferences.getPreferences(getContext(), PREFERENCE_NAME);
-      const best = await dataPreferences.get(BEST_SCORE_KEY, 0) as number;
-      this.gameModel.setBestScore(best);
+      const saved = await dataPreferences.get(MAX_TILE_KEY, 0) as number;
+      this.gameModel.setMaxTileValue(saved);
     } catch (e) {
-      console.error('Failed to load best score');
+      console.error('Failed to load max tile');
     }
   }
 
-  private async saveBestScore(): Promise<void> {
+  private async saveMaxTile(): Promise<void> {
     try {
       const dataPreferences = await preferences.getPreferences(getContext(), PREFERENCE_NAME);
-      await dataPreferences.put(BEST_SCORE_KEY, this.bestScore);
+      await dataPreferences.put(MAX_TILE_KEY, this.maxTileValue);
       await dataPreferences.flush();
     } catch (e) {
-      console.error('Failed to save best score');
+      console.error('Failed to save max tile');
     }
-  }
-
-  private getTileBgColor(value: number): string {
-    if (value === 0) {
-      return 'rgba(238, 228, 218, 0.35)';
-    }
-    return TILE_COLORS[value] || '#3C3A32';
-  }
-
-  private getTileTextColor(value: number): string {
-    return TILE_TEXT_COLORS[value] || '#FFFFFF';
   }
 
   /** 处理 PanGesture 滑动 — 仅在游戏主界面有效 */
@@ -270,6 +256,129 @@ struct Index {
   // =============================
   //  @Builder 片段
   // =============================
+
+  /** 游戏棋盘内容（不含手势），供两个模式复用 — 使用缓存尺寸避免重复计算 */
+  @Builder GameBoardContent() {
+    // Header
+    Row() {
+      Text('2048')
+        .fontSize(this.isXs ? 18 : 36)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#776E65')
+      Blank()
+      Text(this.getDeviceName())
+        .fontSize(this.isXs ? 7 : 13)
+        .fontColor('#BBADA0')
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+        .borderRadius(3)
+        .backgroundColor('#EDE0C8')
+      Blank()
+      Text('📖 教程')
+        .fontSize(this.isXs ? 7 : 13)
+        .fontColor('#FFFFFF')
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+        .borderRadius(3)
+        .backgroundColor('#EDC22E')
+        .onClick(() => {
+          this.showTeaching = true;
+        })
+    }
+    .width(this.cachedContainerSize)
+    .margin({ bottom: this.isXs ? 4 : 12 })
+
+    // Score
+    Row({ space: this.isXs ? 4 : 10 }) {
+      this.ScoreBox('分数', this.score)
+      this.ScoreBox('最高合成', this.maxTileValue)
+    }
+    .width(this.cachedContainerSize)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .margin({ bottom: this.isXs ? 4 : 12 })
+
+    // Move count & New game
+    Row() {
+      Text(`步数: ${this.moveCount}`)
+        .fontSize(this.isXs ? 8 : 14)
+        .fontColor('#776E65')
+      Blank()
+      Button('新游戏')
+        .fontSize(this.isXs ? 8 : 14)
+        .fontColor('#FFFFFF')
+        .backgroundColor('#8F7A66')
+        .borderRadius(this.isXs ? 4 : 6)
+        .padding({
+          left: this.isXs ? 6 : 16,
+          right: this.isXs ? 6 : 16,
+          top: this.isXs ? 2 : 8,
+          bottom: this.isXs ? 2 : 8
+        })
+        .onClick(() => {
+          this.saveMaxTile();
+          this.gameModel.newGame();
+        })
+    }
+    .width(this.cachedContainerSize)
+    .margin({ bottom: this.isXs ? 4 : 12 })
+
+    // === Game Board ===
+    Column() {
+      // Row 0
+      Row() {
+        TileCellComponent({ value: this.flatBoard[0], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[1], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[2], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[3], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+      }
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .width('100%')
+
+      // Row 1
+      Row() {
+        TileCellComponent({ value: this.flatBoard[4], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[5], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[6], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[7], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+      }
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .width('100%')
+
+      // Row 2
+      Row() {
+        TileCellComponent({ value: this.flatBoard[8], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[9], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[10], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[11], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+      }
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .width('100%')
+
+      // Row 3
+      Row() {
+        TileCellComponent({ value: this.flatBoard[12], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[13], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[14], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+        TileCellComponent({ value: this.flatBoard[15], tileSize: this.cachedTileSize, borderRadius_: this.cachedBorderRadius })
+      }
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .width('100%')
+    }
+    .width(this.cachedContainerSize)
+    .height(this.cachedContainerSize)
+    .padding(this.cachedGap)
+    .borderRadius(this.isXs ? 4 : 10)
+    .backgroundColor('#BBADA0')
+    .justifyContent(FlexAlign.SpaceEvenly)
+
+    // Instructions
+    if (!this.isXs) {
+      Text(this.deviceCategory === DeviceCategory.PC ? '方向键或WASD移动' : '滑动屏幕移动方块')
+        .fontSize(12)
+        .fontColor('#BBADA0')
+        .margin({ top: 16 })
+    }
+  }
 
   @Builder ModeSelectScreen() {
     Stack() {
@@ -364,10 +473,10 @@ struct Index {
     }
     .width('45%')
     .padding({
-      top: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 8,
-      bottom: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 8
+      top: this.isXs ? 2 : 8,
+      bottom: this.isXs ? 2 : 8
     })
-    .borderRadius(6)
+    .borderRadius(this.isXs ? 4 : 6)
     .backgroundColor('#BBADA0')
     .alignItems(HorizontalAlign.Center)
   }
@@ -422,7 +531,7 @@ struct Index {
           .margin({ top: 10 })
         Button('再来一局')
           .onClick(() => {
-            this.saveBestScore();
+            this.saveMaxTile();
             this.gameModel.newGame();
             this.showGameOverDialog = false;
           })
@@ -449,128 +558,12 @@ struct Index {
 
       // =====================
       // 游戏主界面（模式选择后显示）
+      // 关键：教学中不挂载 PanGesture，避免手势竞争导致覆盖层按钮无法点击
       // =====================
-      if (!this.showModeSelect) {
+      if (!this.showModeSelect && !this.showTeaching) {
+        // 普通模式：挂载 PanGesture 响应滑动
         Column() {
-          // Header
-          Row() {
-            Text('2048')
-              .fontSize(this.currentBreakpoint === DeviceBreakpoint.XS ? 24 : 36)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#776E65')
-            Blank()
-            Text(this.getDeviceName())
-              .fontSize(this.currentBreakpoint === DeviceBreakpoint.XS ? 10 : 13)
-              .fontColor('#BBADA0')
-              .fontWeight(FontWeight.Bold)
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-              .borderRadius(4)
-              .backgroundColor('#EDE0C8')
-            Blank()
-            Text('📖 教程')
-              .fontSize(this.currentBreakpoint === DeviceBreakpoint.XS ? 10 : 13)
-              .fontColor('#FFFFFF')
-              .fontWeight(FontWeight.Bold)
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-              .borderRadius(4)
-              .backgroundColor('#EDC22E')
-              .onClick(() => {
-                this.showTeaching = true;
-              })
-          }
-          .width(this.getBoardContainerSize())
-          .margin({ bottom: this.currentBreakpoint === DeviceBreakpoint.XS ? 6 : 12 })
-
-          // Score
-          Row({ space: this.currentBreakpoint === DeviceBreakpoint.XS ? 6 : 10 }) {
-            this.ScoreBox('分数', this.score)
-            this.ScoreBox('最高分', this.bestScore)
-          }
-          .width(this.getBoardContainerSize())
-          .justifyContent(FlexAlign.SpaceBetween)
-          .margin({ bottom: this.currentBreakpoint === DeviceBreakpoint.XS ? 6 : 12 })
-
-          // Move count & New game
-          Row() {
-            Text(`步数: ${this.moveCount}`)
-              .fontSize(this.currentBreakpoint === DeviceBreakpoint.XS ? 11 : 14)
-              .fontColor('#776E65')
-            Blank()
-            Button('新游戏')
-              .fontSize(this.currentBreakpoint === DeviceBreakpoint.XS ? 11 : 14)
-              .fontColor('#FFFFFF')
-              .backgroundColor('#8F7A66')
-              .borderRadius(6)
-              .padding({
-                left: this.currentBreakpoint === DeviceBreakpoint.XS ? 10 : 16,
-                right: this.currentBreakpoint === DeviceBreakpoint.XS ? 10 : 16,
-                top: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 8,
-                bottom: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 8
-              })
-              .onClick(() => {
-                this.saveBestScore();
-                this.gameModel.newGame();
-              })
-          }
-          .width(this.getBoardContainerSize())
-          .margin({ bottom: this.currentBreakpoint === DeviceBreakpoint.XS ? 6 : 12 })
-
-          // === Game Board ===
-          Column() {
-            // Row 0
-            Row() {
-              TileCellComponent({ value: this.flatBoard[0], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[1], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[2], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[3], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-            }
-            .justifyContent(FlexAlign.SpaceEvenly)
-            .width('100%')
-
-            // Row 1
-            Row() {
-              TileCellComponent({ value: this.flatBoard[4], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[5], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[6], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[7], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-            }
-            .justifyContent(FlexAlign.SpaceEvenly)
-            .width('100%')
-
-            // Row 2
-            Row() {
-              TileCellComponent({ value: this.flatBoard[8], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[9], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[10], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[11], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-            }
-            .justifyContent(FlexAlign.SpaceEvenly)
-            .width('100%')
-
-            // Row 3
-            Row() {
-              TileCellComponent({ value: this.flatBoard[12], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[13], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[14], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-              TileCellComponent({ value: this.flatBoard[15], tileSize: this.getTileSize(), borderRadius_: this.currentBreakpoint === DeviceBreakpoint.XS ? 4 : 6 })
-            }
-            .justifyContent(FlexAlign.SpaceEvenly)
-            .width('100%')
-          }
-          .width(this.getBoardContainerSize())
-          .height(this.getBoardContainerSize())
-          .padding(this.getGap())
-          .borderRadius(this.currentBreakpoint === DeviceBreakpoint.XS ? 6 : 10)
-          .backgroundColor('#BBADA0')
-          .justifyContent(FlexAlign.SpaceEvenly)
-
-          // Instructions
-          if (this.currentBreakpoint !== DeviceBreakpoint.XS) {
-            Text(this.deviceCategory === DeviceCategory.PC ? '方向键或WASD移动' : '滑动屏幕移动方块')
-              .fontSize(12)
-              .fontColor('#BBADA0')
-              .margin({ top: 16 })
-          }
+          this.GameBoardContent()
         }
         .width('100%')
         .height('100%')
@@ -598,15 +591,26 @@ struct Index {
         }
       }
 
+      if (!this.showModeSelect && this.showTeaching) {
+        // 教学模式：不挂载 PanGesture，确保覆盖层按钮可正常点击
+        Column() {
+          this.GameBoardContent()
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor('#FAF8EF')
+        .onKeyEvent((event: KeyEvent) => {
+          this.handleKeyEvent(event);
+        })
+      }
+
       // =====================
       // 教学模式覆盖层（独立渲染，不阻塞游戏）
       // =====================
       if (this.showTeaching) {
-        TeachingOverlay({
-          closeCallback: () => {
-            this.closeTeaching();
-          }
-        })
+        TeachingOverlay({ showTeaching: $showTeaching })
       }
     }
     .width('100%')

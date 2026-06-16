@@ -38,19 +38,19 @@ export class CellPosition {
 export class GameState {
   board: (Tile | null)[][];
   score: number;
-  bestScore: number;
+  maxTileValue: number;
   isGameOver: boolean;
   isWin: boolean;
   hasWon: boolean;
   boardSize: number;
   moveCount: number;
 
-  constructor(board: (Tile | null)[][], score: number, bestScore: number,
+  constructor(board: (Tile | null)[][], score: number, maxTileValue: number,
     isGameOver: boolean, isWin: boolean, hasWon: boolean,
     boardSize: number, moveCount: number) {
     this.board = board;
     this.score = score;
-    this.bestScore = bestScore;
+    this.maxTileValue = maxTileValue;
     this.isGameOver = isGameOver;
     this.isWin = isWin;
     this.hasWon = hasWon;
@@ -65,7 +65,7 @@ export class Game2048Model {
   private boardSize: number = 4;
   private board: (Tile | null)[][] = [];
   private score: number = 0;
-  private bestScore: number = 0;
+  private maxTileValue: number = 0;
   private isGameOver: boolean = false;
   private isWin: boolean = false;
   private hasWon: boolean = false;
@@ -97,24 +97,26 @@ export class Game2048Model {
   }
 
   private buildGameState(): GameState {
+    // 直接引用棋盘数组（浅拷贝结构，不深拷贝每个 Tile）
+    // 安全原因：listener 只读取 tile.value 数值并立即转换为 flatBoard，
+    // 不会保留 Tile 引用，因此不需要深拷贝
     const board: (Tile | null)[][] = [];
+    let boardMax: number = 0;
     for (let r = 0; r < this.boardSize; r++) {
       board[r] = [];
       for (let c = 0; c < this.boardSize; c++) {
         const tile: Tile | null = this.board[r][c];
-        if (tile !== null) {
-          const copy: Tile = new Tile(tile.value, tile.id, r, c);
-          copy.isNew = tile.isNew;
-          copy.isMerged = tile.isMerged;
-          copy.previousRow = tile.previousRow;
-          copy.previousCol = tile.previousCol;
-          board[r][c] = copy;
-        } else {
-          board[r][c] = null;
+        board[r][c] = tile;
+        if (tile !== null && tile.value > boardMax) {
+          boardMax = tile.value;
         }
       }
     }
-    return new GameState(board, this.score, this.bestScore,
+    // 以棋盘实际最大值为准，确保不遗漏任何方块（包括初始随机生成的2/4）
+    if (boardMax > this.maxTileValue) {
+      this.maxTileValue = boardMax;
+    }
+    return new GameState(board, this.score, this.maxTileValue,
       this.isGameOver, this.isWin, this.hasWon,
       this.boardSize, this.moveCount);
   }
@@ -128,6 +130,7 @@ export class Game2048Model {
       }
     }
     this.score = 0;
+    this.maxTileValue = 0;
     this.isGameOver = false;
     this.isWin = false;
     this.hasWon = false;
@@ -165,6 +168,9 @@ export class Game2048Model {
     const tile: Tile = new Tile(value, this.tileIdCounter++, cell.row, cell.col);
     tile.isNew = true;
     this.board[cell.row][cell.col] = tile;
+    if (value > this.maxTileValue) {
+      this.maxTileValue = value;
+    }
     return true;
   }
 
@@ -228,6 +234,9 @@ export class Game2048Model {
         mergedTile.previousRow = tiles[i].previousRow;
         mergedTile.previousCol = tiles[i].previousCol;
         this.score += mergedValue;
+        if (mergedValue > this.maxTileValue) {
+          this.maxTileValue = mergedValue;
+        }
         if (mergedValue >= 2048 && !this.hasWon) {
           this.hasWon = true;
           this.isWin = true;
@@ -315,9 +324,6 @@ export class Game2048Model {
     if (moved) {
       this.moveCount++;
       this.addRandomTile();
-      if (this.score > this.bestScore) {
-        this.bestScore = this.score;
-      }
       if (this.checkGameOver()) {
         this.isGameOver = true;
       }
@@ -327,8 +333,10 @@ export class Game2048Model {
     return moved;
   }
 
-  public setBestScore(score: number): void {
-    this.bestScore = score;
+  public setMaxTileValue(value: number): void {
+    if (value > this.maxTileValue) {
+      this.maxTileValue = value;
+    }
   }
 
   public continueGame(): void {
@@ -337,5 +345,9 @@ export class Game2048Model {
 
   public getBoardSize(): number {
     return this.boardSize;
+  }
+
+  public getMaxTileValue(): number {
+    return this.maxTileValue;
   }
 }

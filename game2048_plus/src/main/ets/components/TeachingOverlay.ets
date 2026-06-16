@@ -1,17 +1,17 @@
 /**
- * 2048 教学模式组件
- * 提供交互式多页教程，引导新玩家快速上手
- * 注意：此组件始终渲染内容，由父组件通过 if 条件控制显隐
+ * 2048 教学模式组件 — 单页滚动布局
+ * 通过 @Link 直接控制父组件的 showTeaching 状态
+ * 所有教程内容在同一页上，上下滑动即可浏览
  */
 
-interface TutorialPage {
+interface TutorialSection {
   title: string;
   subtitle: string;
   content: string[];
   tip: string;
 }
 
-const TUTORIAL_PAGES: TutorialPage[] = [
+const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     title: '🎮 欢迎来到 2048',
     subtitle: '一款让人上瘾的数字益智游戏',
@@ -90,148 +90,130 @@ const TUTORIAL_PAGES: TutorialPage[] = [
 
 @Component
 export struct TeachingOverlay {
-  private closeCallback: () => void = () => {};
-  @State currentPage: number = 0;
+  @Link showTeaching: boolean;
+
+  // @Builder: 每个教程小节
+  @Builder TutorialCard(section: TutorialSection, index: number) {
+    Column() {
+      // 序号
+      Text(`${index + 1}. ${section.title}`)
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF')
+        .width('100%')
+
+      Text(section.subtitle)
+        .fontSize(14)
+        .fontColor('rgba(255,255,255,0.7)')
+        .width('100%')
+        .margin({ top: 4, bottom: 14 })
+
+      // 分隔线
+      Column()
+        .width('50%')
+        .height(1)
+        .backgroundColor('rgba(255,255,255,0.15)')
+        .margin({ bottom: 14 })
+
+      // 内容
+      Column() {
+        ForEach(section.content, (line: string) => {
+          Text(line)
+            .fontSize(14)
+            .fontColor('rgba(255,255,255,0.9)')
+            .lineHeight(22)
+            .width('100%')
+            .margin({ bottom: 4 })
+        })
+      }
+      .width('100%')
+      .margin({ bottom: 10 })
+
+      // 提示
+      Row() {
+        Text(section.tip)
+          .fontSize(13)
+          .fontColor('#EDC22E')
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .padding(10)
+      .backgroundColor('rgba(237, 194, 46, 0.12)')
+      .borderRadius(8)
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor('rgba(255,255,255,0.05)')
+    .borderRadius(10)
+    .margin({ bottom: 14 })
+  }
 
   build() {
     Stack() {
-      // 半透明背景
+      // 半透明背景 — 点击空白区域关闭
       Column()
         .width('100%')
         .height('100%')
         .backgroundColor('rgba(0, 0, 0, 0.6)')
+        .onClick(() => {
+          this.showTeaching = false;
+        })
 
-      // 教程卡片
-      Column() {
-        // 顶部进度条
+      // 教程卡片容器 — 使用 Flex 布局确保 Scroll 获得正确的高度约束
+      Flex({ direction: FlexDirection.Column }) {
+        // 顶部标题栏（固定高度，不参与滚动）
         Row() {
-          ForEach(TUTORIAL_PAGES, (_page: TutorialPage, index: number) => {
-            Column()
-              .width(30)
-              .height(4)
-              .borderRadius(2)
-              .backgroundColor(index <= this.currentPage ? '#EDC22E' : 'rgba(255,255,255,0.3)')
-              .margin({ left: 3, right: 3 })
-          })
-        }
-        .width('100%')
-        .margin({ bottom: 16 })
-
-        // 页面编号
-        Text(`第 ${this.currentPage + 1}/${TUTORIAL_PAGES.length} 页`)
-          .fontSize(13)
-          .fontColor('rgba(255,255,255,0.6)')
-          .margin({ bottom: 8 })
-
-        // 标题
-        Text(TUTORIAL_PAGES[this.currentPage].title)
-          .fontSize(26)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .textAlign(TextAlign.Center)
-          .width('100%')
-
-        // 副标题
-        Text(TUTORIAL_PAGES[this.currentPage].subtitle)
-          .fontSize(15)
-          .fontColor('rgba(255,255,255,0.75)')
-          .textAlign(TextAlign.Center)
-          .width('100%')
-          .margin({ top: 6, bottom: 20 })
-
-        // 分隔线
-        Column()
-          .width('60%')
-          .height(1)
-          .backgroundColor('rgba(255,255,255,0.2)')
-          .margin({ bottom: 20 })
-
-        // 内容列表
-        Column() {
-          ForEach(TUTORIAL_PAGES[this.currentPage].content, (line: string) => {
-            Text(line)
-              .fontSize(15)
-              .fontColor('rgba(255,255,255,0.9)')
-              .lineHeight(24)
-              .width('100%')
-              .margin({ bottom: 6 })
-          })
-        }
-        .width('100%')
-        .padding({ left: 8, right: 8 })
-        .layoutWeight(1)
-
-        // 提示框
-        Row() {
-          Text(TUTORIAL_PAGES[this.currentPage].tip)
-            .fontSize(14)
-            .fontColor('#EDC22E')
-            .fontWeight(FontWeight.Medium)
-        }
-        .width('100%')
-        .padding(12)
-        .backgroundColor('rgba(237, 194, 46, 0.12)')
-        .borderRadius(8)
-        .margin({ top: 16, bottom: 20 })
-
-        // 导航按钮
-        Row({ space: 12 }) {
-          // 关闭按钮
+          Text('📖 2048 完全指南')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFFFFF')
+          Blank()
           Button('✕ 关闭')
-            .fontSize(14)
+            .fontSize(13)
             .fontColor('#FFFFFF')
             .backgroundColor('rgba(255,255,255,0.15)')
-            .borderRadius(20)
-            .height(44)
-            .layoutWeight(1)
+            .borderRadius(16)
+            .height(36)
+            .padding({ left: 14, right: 14 })
             .onClick(() => {
-              this.currentPage = 0;
-              if (this.closeCallback) {
-                this.closeCallback();
-              }
-            })
-
-          // 上一页
-          if (this.currentPage > 0) {
-            Button('← 上一页')
-              .fontSize(14)
-              .fontColor('#FFFFFF')
-              .backgroundColor('#8F7A66')
-              .borderRadius(20)
-              .height(44)
-              .layoutWeight(1)
-              .onClick(() => {
-                this.currentPage--;
-              })
-          }
-
-          // 下一页 / 完成
-          Button(this.currentPage < TUTORIAL_PAGES.length - 1 ? '下一页 →' : '🎉 开始游戏!')
-            .fontSize(14)
-            .fontColor('#FFFFFF')
-            .backgroundColor(this.currentPage < TUTORIAL_PAGES.length - 1 ? '#EDC22E' : '#F65E3B')
-            .borderRadius(20)
-            .height(44)
-            .layoutWeight(1)
-            .onClick(() => {
-              if (this.currentPage < TUTORIAL_PAGES.length - 1) {
-                this.currentPage++;
-              } else {
-                this.currentPage = 0;
-                if (this.closeCallback) {
-                  this.closeCallback();
-                }
-              }
+              this.showTeaching = false;
             })
         }
         .width('100%')
+        .flexShrink(0)
+        .padding({ left: 4, right: 4, bottom: 14 })
+
+        // 可滚动内容区 — flexGrow(1) 占据剩余空间，内容超出时自动可滚
+        Scroll() {
+          Column() {
+            ForEach(TUTORIAL_SECTIONS, (section: TutorialSection, index: number) => {
+              this.TutorialCard(section, index)
+            })
+
+            // 底部提示
+            Text('🎉 掌握了这些技巧，去挑战 2048 吧！')
+              .fontSize(14)
+              .fontColor('#EDC22E')
+              .fontWeight(FontWeight.Medium)
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .padding({ top: 8, bottom: 8 })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+        .scrollBar(BarState.Off)
+        .scrollable(ScrollDirection.Vertical)
+        .width('100%')
+        .flexGrow(1)
+        .flexShrink(1)
       }
       .width('88%')
-      .height('80%')
-      .padding(24)
-      .backgroundColor('rgba(60, 58, 50, 0.95)')
+      .height('82%')
+      .padding(20)
+      .backgroundColor('rgba(48, 46, 40, 0.96)')
       .borderRadius(16)
-      .alignItems(HorizontalAlign.Start)
+      .hitTestBehavior(HitTestMode.Block)
     }
     .width('100%')
     .height('100%')
