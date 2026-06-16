@@ -1,0 +1,25 @@
+# HarmonyOS / Hvigor
+.hvigor/
+build/
+*.hap
+*.app
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Node / ohpm
+oh_modules/
+node_modules/
+*.lock.json5
+
+# Build caches
+*.log
+*.tsbuildinfo
+
+# Local configuration
+local.properties
+signing.json5

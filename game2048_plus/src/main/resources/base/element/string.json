@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "Game2048_plusAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "Game2048_plusAbility_label",
+      "value": "label"
+    }
+  ]
+}

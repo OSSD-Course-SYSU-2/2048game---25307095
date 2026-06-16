@@ -1,0 +1,55 @@
+{
+  "module": {
+    "name": "game2048_plus",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "Game2048_plusAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1",
+      "car",
+      "wearable",
+      "tv"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "Game2048_plusAbility",
+        "srcEntry": "./ets/game2048_plusability/Game2048_plusAbility.ets",
+        "description": "$string:Game2048_plusAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:Game2048_plusAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "Game2048_plusBackupAbility",
+        "srcEntry": "./ets/game2048_plusbackupability/Game2048_plusBackupAbility.ets",
+        "type": "backup",
+        "exported": false,
+        "metadata": [
+          {
+            "name": "ohos.extension.backup",
+            "resource": "$profile:backup_config"
+          }
+        ],
+      }
+    ]
+  }
+}
